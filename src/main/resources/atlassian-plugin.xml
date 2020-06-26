@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<atlassian-plugin key="${atlassian.plugin.key}" name="${project.name}" plugins-version="2"> 
+  <plugin-info> 
+    <description>${project.description}</description>  
+    <version>${project.version}</version>  
+    <vendor name="${project.organization.name}" url="${project.organization.url}"/>  
+    <param name="plugin-icon">images/gitea-sm.png</param>  
+    <param name="plugin-logo">images/gitea-sm.png</param> 
+  </plugin-info>  
+  <!-- add our i18n resource -->  
+  <resource type="i18n" name="i18n" location="JiraGitea"/>  
+  <!-- add our web resources -->  
+  <web-resource key="JiraGitea-resources" name="JiraGitea Web Resources"> 
+    <dependency>com.atlassian.auiplugin:ajs</dependency>  
+    <resource type="download" name="JiraGitea.css" location="/css/JiraGitea.css"/>  
+    <resource type="download" name="JiraGitea.js" location="/js/JiraGitea.js"/>  
+    <resource type="download" name="images/" location="/images"/>  
+    <context>JiraGitea</context> 
+  </web-resource>  
+  <servlet name="Jira Gitea Webhook Servlet" i18n-name-key="jira-gitea-webhook-servlet.name" key="jira-gitea-webhook-servlet" class="com.lbayer.jiragitea.JiraGiteaWebhookServlet"> 
+    <description key="jira-gitea-webhook-servlet.description">The Jira Gitea Webhook Servlet Plugin</description>  
+    <url-pattern>/jiragitea/webhook</url-pattern> 
+  </servlet>  
+</atlassian-plugin>
