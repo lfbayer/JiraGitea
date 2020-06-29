@@ -80,10 +80,15 @@ public class JiraGiteaWebhookServlet extends HttpServlet{
 
     private Optional<Integer> findActionId(Issue issue, ApplicationUser user, String transitionName)
     {
+        String lowerCaseTransition = transitionName.toLowerCase();
+
         IssueWorkflowManager issueWorkflowManager = ComponentAccessor.getComponent(IssueWorkflowManager.class);
         List<ActionDescriptor> actions = issueWorkflowManager.getSortedAvailableActions(issue, user);
         return actions.stream()
-                .filter(a -> transitionName.equalsIgnoreCase(a.getName()))
+                .filter(a -> {
+                    String lowerCaseAction = a.getName().toLowerCase();
+                    return lowerCaseAction.equals(lowerCaseTransition) || lowerCaseAction.startsWith(transitionName + " ");
+                })
                 .findFirst()
                 .map(ActionDescriptor::getId);
     }
