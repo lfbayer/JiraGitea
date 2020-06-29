@@ -78,7 +78,7 @@ public class JiraGiteaWebhookServlet extends HttpServlet{
         return null;
     }
 
-    private Optional<Integer> findActionId(Issue issue, ApplicationUser user, String transitionName)
+    private Optional<ActionDescriptor> findAction(Issue issue, ApplicationUser user, String transitionName)
     {
         String lowerCaseTransition = transitionName.toLowerCase();
 
@@ -89,8 +89,7 @@ public class JiraGiteaWebhookServlet extends HttpServlet{
                     String lowerCaseAction = a.getName().toLowerCase();
                     return lowerCaseAction.equals(lowerCaseTransition) || lowerCaseAction.startsWith(transitionName + " ");
                 })
-                .findFirst()
-                .map(ActionDescriptor::getId);
+                .findFirst();
     }
 
     private void logErrors(ServiceResult result) {
@@ -101,22 +100,13 @@ public class JiraGiteaWebhookServlet extends HttpServlet{
 
     private void handleCommit(StringMap stringMap) {
         Commit commit = new Commit(stringMap);
-        log.info("Processing commit: {} ({})\n", commit.id, commit.committer.email);
+        log.info("Processing commit: {} ({})", commit.id, commit.committer.email);
 
         ApplicationUser user = findUser(commit.committer.email);
         if (user == null) {
             log.warn("No user found for email address: {}", commit.committer.email);
             return;
         }
-
-//        String propKey = "jiragitea:commit:" + commit.id;
-//        ApplicationProperties applicationProperties = ComponentAccessor.getApplicationProperties();
-//        if (applicationProperties.getOption(propKey)) {
-//            // duplicate event
-//            return;
-//        }
-//
-//        applicationProperties.setOption(propKey, true);
 
         JiraAuthenticationContext authContext = ComponentAccessor.getJiraAuthenticationContext();
         authContext.setLoggedInUser(user);
@@ -137,46 +127,52 @@ public class JiraGiteaWebhookServlet extends HttpServlet{
             return;
         }
 
+        log.info("Performing action on issue {}", action.key);
+
         MutableIssue issue = issueResult.getIssue();
-        Long issueId = issue.getId();
-
-        if (!action.transitionName.equalsIgnoreCase("comment")) {
-            Optional<Integer> actionId = findActionId(issue, user, action.transitionName);
-            if (!actionId.isPresent()) {
-                log.warn("No action found for transition: {}", action.transitionName);
-                return;
-            }
-
-            TransitionValidationResult validationResult =
-                    issueService.validateTransition(user, issueId, actionId.get(), issueService.newIssueInputParameters());
-            if (!validationResult.isValid()) {
-                log.warn("Validation error transitioning issue {} (user: {})", action.key, user.getUsername());
-                logErrors(validationResult);
-                return;
-            }
-
-            IssueResult result = issueService.transition(user, validationResult);
-            if (!result.isValid()) {
-                log.warn("Unable to transition issue {} (user: {})", action.key, user.getUsername());
-                logErrors(validationResult);
-                return;
-            }
-        }
 
         IssueInputParameters issueInputParameters = issueService.newIssueInputParameters()
                 .setComment(buildComment(commit, action));
 
-        UpdateValidationResult uvr = issueService.validateUpdate(user, issueId, issueInputParameters);
-        if (!uvr.isValid()) {
-            log.warn("Validation error adding comment to issue {} (user: {})", action.key, user.getUsername());
-            logErrors(uvr);
+        issueInputParameters.setSkipScreenCheck(true);
+
+        if (action.transitionName.equalsIgnoreCase("comment")) {
+            UpdateValidationResult uvr = issueService.validateUpdate(user, issue.getId(), issueInputParameters);
+            if (!uvr.isValid()) {
+                log.warn("Validation error adding comment to issue {} (user: {})", action.key, user.getUsername());
+                logErrors(uvr);
+                return;
+            }
+
+            IssueResult updateResult = issueService.update(user, uvr);
+            if (!updateResult.isValid()) {
+                log.warn("Unable to update issue {} (user: {})", action.key, user.getUsername());
+                logErrors(updateResult);
+            }
+
+            return;
+        }
+        Optional<ActionDescriptor> actionOpt = findAction(issue, user, action.transitionName);
+        if (!actionOpt.isPresent()) {
+            log.warn("No action found for transition: {}", action.transitionName);
             return;
         }
 
-        IssueResult updateResult = issueService.update(user, uvr);
-        if (!updateResult.isValid()) {
-            log.warn("Unable to update issue {} (user: {})", action.key, user.getUsername());
-            logErrors(updateResult);
+        ActionDescriptor actionDesc = actionOpt.get();
+        log.info("Transitioning issue " + action.key + ": {} -> {}", issue.getStatus().getName(), actionDesc.getUnconditionalResult().getStatus());
+
+        TransitionValidationResult validationResult =
+                issueService.validateTransition(user, issue.getId(), actionDesc.getId(), issueInputParameters);
+        if (!validationResult.isValid()) {
+            log.warn("Validation error transitioning issue {} (user: {})", action.key, user.getUsername());
+            logErrors(validationResult);
+            return;
+        }
+
+        IssueResult result = issueService.transition(user, validationResult);
+        if (!result.isValid()) {
+            log.warn("Unable to transition issue {} (user: {})", action.key, user.getUsername());
+            logErrors(validationResult);
         }
     }
 
