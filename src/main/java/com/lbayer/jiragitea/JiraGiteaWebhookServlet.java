@@ -37,15 +37,10 @@ public class JiraGiteaWebhookServlet extends HttpServlet{
     private static final Logger log = LoggerFactory.getLogger(JiraGiteaWebhookServlet.class);
 
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException
-    {
-        doPost(req, resp);
-    }
-
-    @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException
     {
-        if (!req.getContentType().startsWith("application/json")) {
+        String contentType = req.getContentType();
+        if (contentType == null || !contentType.startsWith("application/json")) {
             resp.sendError(HttpServletResponse.SC_UNSUPPORTED_MEDIA_TYPE, "Type must be 'application/json'");
             return;
         }

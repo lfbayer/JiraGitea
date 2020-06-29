@@ -1,0 +1,33 @@
+<html lang="en">
+<head>
+    <title>GIT Webhooks</title>
+    <script type="text/javascript">
+        function jiragitea_init() {
+            var url = window.location.protocol + "//" + window.location.host + "/jira/plugins/servlet/jiragitea/webhook";
+            var element = document.getElementById("jiragitea-hookurl");
+            element.value = url;
+
+            console.log("Loaded URL:" + url);
+        }
+    </script>
+    <style>
+        .jiragitea_hookentry {
+            display: flex;
+            align-items: center;
+        }
+
+        .jiragitea_hookentry #jiragitea-hookurl {
+            width: 400px;
+            margin-left: 5px;
+        }
+    </style>
+</head>
+<body>
+<h1>GIT WebHooks</h1>
+
+<div class="jiragitea_hookentry">
+    <label>WebHook URL:<input id="jiragitea-hookurl"  value="" readonly /></label>
+</div>
+<script type="text/javascript">jiragitea_init()</script>
+</body>
+</html>

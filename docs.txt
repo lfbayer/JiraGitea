@@ -1,0 +1,3 @@
+https://developer.atlassian.com/server/jira/platform/administration-ui-locations/
+
+https://developer.atlassian.com/server/framework/atlassian-sdk/creating-an-admin-configuration-form/
