@@ -3,11 +3,12 @@
     <title>GIT Webhooks</title>
     <script type="text/javascript">
         function jiragitea_init() {
-            var url = window.location.protocol + "//" + window.location.host + "/jira/plugins/servlet/jiragitea/webhook";
+            var index = window.location.href.indexOf("/secure/");
+            var prefix = window.location.href.substring(0, index)
+            var url = prefix + "/plugins/servlet/jiragitea/webhook";
+
             var element = document.getElementById("jiragitea-hookurl");
             element.value = url;
-
-            console.log("Loaded URL:" + url);
         }
     </script>
     <style>
