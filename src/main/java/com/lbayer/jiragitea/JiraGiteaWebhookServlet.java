@@ -33,6 +33,8 @@ import com.opensymphony.workflow.loader.ActionDescriptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.atlassian.jira.workflow.JiraWorkflow.JIRA_META_ATTRIBUTE_INCLUDE_RESOLUTION;
+
 public class JiraGiteaWebhookServlet extends HttpServlet{
     private static final Logger log = LoggerFactory.getLogger(JiraGiteaWebhookServlet.class);
 
@@ -152,6 +154,7 @@ public class JiraGiteaWebhookServlet extends HttpServlet{
 
             return;
         }
+
         Optional<ActionDescriptor> actionOpt = findAction(issue, user, action.transitionName);
         if (!actionOpt.isPresent()) {
             log.warn("No action found for transition: {}", action.transitionName);
@@ -159,6 +162,16 @@ public class JiraGiteaWebhookServlet extends HttpServlet{
         }
 
         ActionDescriptor actionDesc = actionOpt.get();
+
+        Object includeResoAttr = actionDesc.getMetaAttributes().get(JIRA_META_ATTRIBUTE_INCLUDE_RESOLUTION);
+        if (includeResoAttr != null) {
+            String includeResolutions = (String) includeResoAttr;
+            if (!includeResolutions.isEmpty()) {
+                String firstValidResolution = includeResolutions.split(",")[0];
+                issueInputParameters.setResolutionId(firstValidResolution);
+            }
+        }
+
         log.info("Transitioning issue " + action.key + ": {} -> {}", issue.getStatus().getName(), actionDesc.getUnconditionalResult().getStatus());
 
         TransitionValidationResult validationResult =
